@@ -69,7 +69,7 @@ public:
     {
         std::unique_lock<std::mutex> lock(mMutex);
 
-        while (!mStopped)
+        // while (!mStopped)
         {
             if (mCondition.wait_for(lock, mTimeout, [this]
                                     { return mPendingFrames > 0; }))
@@ -523,6 +523,8 @@ int main(int argc, char *argv[])
         int pending, err;
         bool isSend = false;
         char buffer[256];
+        unsigned char *previousData = new unsigned char[50000];
+        size_t lengthPreviousData = 0;
 
         while (!gWaiter.isStopped())
         {
@@ -563,7 +565,9 @@ int main(int argc, char *argv[])
                 continue;
             }
 
-            while ((pending = gWaiter.waitForFrame()) > 0)
+            // while (true)
+            //{
+            if ((pending = gWaiter.waitForFrame()) > 0)
             {
                 MCINFO("while wait for frame");
                 auto frameAvailableAt = std::chrono::steady_clock::now();
@@ -631,9 +635,16 @@ int main(int argc, char *argv[])
 
                 putUInt32LE(data, size);
 
-                MCINFO("Check isSend, size=%d", size);
+                MCINFO("memset");
+                memset(previousData, 0, sizeof(previousData));
 
-                if (isSend)
+                MCINFO("memcpy");
+                memcpy(previousData, data, size + 1);
+                lengthPreviousData = size;
+
+                MCINFO("Check isSend, size=%d, dataSize=%d", size, strlen((const char *)data));
+
+                // if (isSend)
                 {
                     MCINFO("Send data");
                     if (pumps(fd, data, size + 4) < 0)
@@ -657,9 +668,23 @@ int main(int argc, char *argv[])
                 if (size > 45000)
                 {
                     isSend = false;
-                    break;
+                    // break;
                 }
             }
+            else if (strlen((const char *)previousData))
+            {
+                // if (isSend)
+                {
+                    MCINFO("Send pre data");
+                    if (pumps(fd, previousData, lengthPreviousData + 4) < 0)
+                    {
+                        break;
+                    }
+
+                    // break;
+                }
+            }
+            //}
         }
 
     close:
