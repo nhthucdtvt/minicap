@@ -241,6 +241,7 @@ int main(int argc, char *argv[])
     bool skipFrames = false;
     bool testOnly = false;
     Projection proj;
+    unsigned char *previousData = new unsigned char[100000];
 
     int opt;
     while ((opt = getopt(argc, argv, "d:n:P:Q:r:siSth")) != -1)
@@ -523,7 +524,6 @@ int main(int argc, char *argv[])
         int pending, err;
         bool isSend = false;
         char buffer[256];
-        unsigned char *previousData = new unsigned char[50000];
         size_t lengthPreviousData = 0;
 
         while (!gWaiter.isStopped())
@@ -639,10 +639,9 @@ int main(int argc, char *argv[])
                 memset(previousData, 0, sizeof(previousData));
 
                 MCINFO("memcpy");
+                MCINFO("Check isSend, size=%d, dataSize=%d", size + 1, strlen((const char *)data));
                 memcpy(previousData, data, size + 1);
                 lengthPreviousData = size;
-
-                MCINFO("Check isSend, size=%d, dataSize=%d", size, strlen((const char *)data));
 
                 // if (isSend)
                 {
@@ -699,6 +698,7 @@ int main(int argc, char *argv[])
     }
 
     minicap_free(minicap);
+    delete[] previousData;
 
     return EXIT_SUCCESS;
 
@@ -709,6 +709,7 @@ disaster:
     }
 
     minicap_free(minicap);
+    delete[] previousData;
 
     return EXIT_FAILURE;
 }
